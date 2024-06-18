@@ -146,7 +146,8 @@ export default {
     },
   },
   created() {
-    this.socket = io('http://localhost:3000');
+    const serverUrl = import.meta.env.VITE_SERVER_URL;
+    this.socket = io(serverUrl);
 
     this.socket.on('logged_in', (data) => {
       this.rooms = data.rooms;
