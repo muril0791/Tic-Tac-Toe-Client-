@@ -147,7 +147,9 @@ export default {
   },
   created() {
     const serverUrl = import.meta.env.VITE_SERVER_URL;
-    this.socket = io(serverUrl);
+    this.socket = io(serverUrl, {
+      transports: ['websocket', 'polling']
+    });
 
     this.socket.on('logged_in', (data) => {
       this.rooms = data.rooms;
