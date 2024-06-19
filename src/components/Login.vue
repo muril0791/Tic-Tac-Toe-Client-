@@ -8,17 +8,23 @@
 
 <script>
 export default {
-    props: ['loginError'],
+    name: 'Login',
     data() {
         return {
             username: '',
+            loginError: ''
         };
     },
     methods: {
         login() {
-            this.$emit('login', this.username);
-        },
-    },
+            if (this.username.trim()) {
+                this.$emit('login', this.username);
+                this.loginError = '';
+            } else {
+                this.loginError = 'Username is required';
+            }
+        }
+    }
 };
 </script>
 
@@ -32,18 +38,6 @@ button {
     padding: 10px;
     margin: 10px;
     font-size: 16px;
-}
-
-button {
-    cursor: pointer;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 5px;
-}
-
-button:hover {
-    background-color: #45a049;
 }
 
 .error {

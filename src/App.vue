@@ -2,13 +2,10 @@
   <div id="app">
     <h1>Tic Tac Toe</h1>
     <header v-if="username">
-
-      <div v-if="currentRoom" class="toggle-buttons">
-        <button class="toggle-button" @click="toggleChat">Chat</button>
-        <button class="toggle-button" @click="toggleHistory">History</button>
-      </div>
+      <button @click="toggleChat">Chat</button>
+      <button @click="toggleHistory">History</button>
     </header>
-    <login v-if="!username" @login="handleLogin" :loginError="loginError"></login>
+    <Login v-if="!username" @login="handleLogin" />
     <div v-else>
       <div v-if="!currentRoom" class="rooms">
         <h2>Rooms</h2>
@@ -26,16 +23,16 @@
         <p v-if="status">{{ status }}</p>
         <p v-if="turn">{{ turn === socket.id ? 'Sua vez!' : 'Vez do oponente' }}</p>
         <button @click="leaveRoom">Leave Room</button>
+        <Chat v-if="showChat" :messages="messages" @sendMessage="sendMessage" />
+        <History v-if="showHistory" :history="history" />
       </div>
     </div>
-    <modal v-if="showModal" @close="closeModal">
+    <Modal v-if="showModal" @close="closeModal">
       <h3>{{ modalTitle }}</h3>
       <p>{{ modalMessage }}</p>
       <button @click="playAgain">Play Again</button>
       <button @click="leaveRoom">Leave Room</button>
-    </modal>
-    <chat v-if="showChat" :messages="messages" @send-message="sendMessage" @close="toggleChat"></chat>
-    <history v-if="showHistory" :history="history" @close="toggleHistory"></history>
+    </Modal>
   </div>
 </template>
 
@@ -151,17 +148,24 @@ export default {
       transports: ['websocket', 'polling']
     });
 
+    this.socket.on('connect', () => {
+      console.log('Connected to server');
+    });
+
     this.socket.on('logged_in', (data) => {
       this.rooms = data.rooms;
       this.loginError = '';
+      console.log('Logged in:', data);
     });
 
     this.socket.on('login_error', (message) => {
       this.loginError = message;
+      console.log('Login error:', message);
     });
 
     this.socket.on('room_list', (rooms) => {
       this.rooms = rooms;
+      console.log('Room list:', rooms);
     });
 
     this.socket.on('room_update', (room) => {
@@ -170,6 +174,7 @@ export default {
         this.status = '';
         this.messages = room.messages;
         this.history = room.history;
+        console.log('Room update:', room);
       }
     });
 
@@ -179,24 +184,29 @@ export default {
         this.gameStarted = true;
         this.countdown = null;
       }
+      console.log('Countdown:', count);
     });
 
     this.socket.on('game_start', ({ startingPlayer }) => {
       this.status = `Player ${startingPlayer === this.socket.id ? 'you' : 'opponent'} starts!`;
       this.turn = startingPlayer;
+      console.log('Game start. Starting player:', startingPlayer);
     });
 
     this.socket.on('board_update', (board) => {
       this.board = board;
+      console.log('Board update:', board);
     });
 
     this.socket.on('turn_update', (currentPlayer) => {
       this.turn = currentPlayer;
+      console.log('Turn update. Current player:', currentPlayer);
     });
 
     this.socket.on('game_end', (result) => {
       this.gameStarted = false;
       this.showEndGameOptions(result);
+      console.log('Game end. Result:', result);
     });
 
     this.socket.on('reset_game', () => {
@@ -204,19 +214,23 @@ export default {
       this.board = Array(9).fill(null);
       this.status = '';
       this.turn = null;
+      console.log('Game reset');
     });
 
     this.socket.on('wait_for_play_again', () => {
       this.status = 'Waiting for the other player to play again...';
+      console.log('Waiting for play again');
     });
 
     this.socket.on('message_update', (messages) => {
       this.messages = messages;
+      console.log('Message update:', messages);
     });
 
     this.socket.on('disconnect', () => {
       this.status = 'Disconnected from server.';
       this.gameStarted = false;
+      console.log('Disconnected from server');
     });
   },
 };
@@ -225,32 +239,20 @@ export default {
 <style>
 #app {
   text-align: center;
+  margin-top: 50px;
   font-family: Arial, sans-serif;
 }
 
 header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: flex-end;
   padding: 10px;
-  background-color: #282c34;
-  color: white;
 }
 
-.toggle-buttons {
-  display: flex;
-  gap: 10px;
+button {
+  margin-left: 10px;
 }
 
-.toggle-button {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.login,
 .rooms,
 .game {
   margin-top: 20px;
@@ -301,49 +303,23 @@ button:hover {
 
 .chat,
 .history {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 300px;
-  height: 100%;
-  background: #20232a;
-  color: white;
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
+  margin-top: 20px;
+  text-align: left;
+  margin-left: 30%;
+  margin-right: 30%;
 }
 
 .messages,
 .history ul {
-  flex-grow: 1;
-  overflow-y: auto;
-  margin-bottom: 10px;
+  max-height: 200px;
+  overflow-y: scroll;
+  border: 1px solid #ddd;
+  padding: 10px;
+  background-color: #f9f9f9;
 }
 
 .message {
-  margin-bottom: 10px;
-}
-
-input[type="text"] {
-  padding: 10px;
-  margin-bottom: 10px;
-  font-size: 16px;
-  width: 100%;
-}
-
-button[type="submit"] {
-  cursor: pointer;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  width: 100%;
-  padding: 10px;
-  font-size: 16px;
-}
-
-button[type="submit"]:hover {
-  background-color: #45a049;
+  margin: 5px 0;
 }
 
 .error {
